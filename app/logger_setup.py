@@ -15,7 +15,7 @@ from opentelemetry.exporter.otlp.proto.http._log_exporter import (
     OTLPLogExporter as HTTPOTLPLogExporter,
 )
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-from opentelemetry.sdk._logs.export import ConsoleLogExporter, SimpleLogRecordProcessor
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 
 
 def _configure_hyperdx_logs(options: HyperDXOptions) -> None:
@@ -34,11 +34,7 @@ def _configure_hyperdx_logs(options: HyperDXOptions) -> None:
         )
 
     set_logger_provider(logger_provider)
-    logger_provider.add_log_record_processor(SimpleLogRecordProcessor(exporter))
-    # Console exporter helps verify that logs are emitted at all.
-    logger_provider.add_log_record_processor(
-        SimpleLogRecordProcessor(ConsoleLogExporter())
-    )
+    logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
 
     handler = LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
     logging.getLogger().addHandler(handler)
@@ -50,21 +46,28 @@ def setup_logging():
 
     options = HyperDXOptions(
         service_name="churn-prediction-api",
-        apikey=api_key,
+        logs_apikey=api_key,
+        debug=True,
     )
-
-    # Configure trace/metrics with HyperDX defaults.
-    configure_opentelemetry(options)
-
-    # Override log pipeline to use SimpleLogRecordProcessor.
-    _configure_hyperdx_logs(options)
 
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
+    # Avoid recursion if the exporter emits internal logs.
+    logging.getLogger("opentelemetry.exporter").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+    # Configure trace/metrics with HyperDX defaults.
+    configure_opentelemetry(options)
+
+    # Configure log pipeline to export to HyperDX.
+    _configure_hyperdx_logs(options)
+
     # TODO 2: Create a named logger using logging.getLogger() and return it
     logger = logging.getLogger(__name__)
     logger.info("HyperDX logging configured")
+    logger.info("HyperDX logs endpoint: %s", options.get_logs_endpoint())
+    logger.info("HyperDX logs protocol: %s", options.logs_exporter_protocol)
     return logger
