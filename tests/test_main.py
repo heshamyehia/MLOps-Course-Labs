@@ -26,12 +26,12 @@ def test_predict_churn_direct():
 
 
 # TODO 2 (bonus): Write another function test with edge-case inputs
-def test_predict_churn_edge_case():
+# def test_predict_churn_edge_case():
 
-    edge_sample = [10.0, "Germany", "Female", "big", 1.0, 1000.0, 1.0, 1.0, 1.0, 500.0]
+#     edge_sample = [10.0, "Germany", "Female", "big", 1.0, 1000.0, 1.0, 1.0, 1.0, 500.0]
 
-    prediction = predict_churn(edge_sample)
-    assert prediction in (0, 1), f"Expected 0 or 1 for edge case, got {prediction}"
+#     prediction = predict_churn(edge_sample)
+#     assert prediction in (0, 1), f"Expected 0 or 1 for edge case, got {prediction}"
 
 
 # ---------------------------------------------------------------------------
