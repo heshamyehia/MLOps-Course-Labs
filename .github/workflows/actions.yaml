@@ -62,23 +62,32 @@ jobs:
     needs: build_and_push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${EC2_SSH_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${EC2_HOST}" >> ~/.ssh/known_hosts
         env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Deploy over SSH
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
           DOCKERHUB_REPOSITORY: ${{ env.DOCKERHUB_REPOSITORY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          envs: DOCKERHUB_REPOSITORY,IMAGE_NAME,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
-          script: |
-            IMAGE_URI=${DOCKERHUB_USERNAME}/${DOCKERHUB_REPOSITORY}:latest
-            echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
-            docker pull ${IMAGE_URI}
-            docker stop ${IMAGE_NAME} || true
-            docker rm ${IMAGE_NAME} || true
-            docker run -d --restart unless-stopped --name ${IMAGE_NAME} -p 443:8000 ${IMAGE_URI}
+        run: |
+          ssh "${EC2_USER}@${EC2_HOST}" <<'EOF'
+          set -e
+          IMAGE_URI="${DOCKERHUB_USERNAME}/${DOCKERHUB_REPOSITORY}:latest"
+          echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
+          docker pull "${IMAGE_URI}"
+          docker stop "${IMAGE_NAME}" || true
+          docker rm "${IMAGE_NAME}" || true
+          docker run -d --restart unless-stopped --name "${IMAGE_NAME}" -p 443:8000 "${IMAGE_URI}"
+          EOF
             
