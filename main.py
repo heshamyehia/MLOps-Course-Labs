@@ -59,18 +59,18 @@ def health() -> dict[str, str]:
 #         - Returns the prediction
 #         - Logs the input features and the prediction result
 @post("/predict")
-def predict(request: Churndata) -> dict[str, int]:
+def predict(data: Churndata) -> dict[str, int]:
     features = [
-        request.CreditScore,
-        request.Geography,
-        request.Gender,
-        request.Age,
-        request.Tenure,
-        request.Balance,
-        request.NumOfProducts,
-        request.HasCrCard,
-        request.IsActiveMember,
-        request.EstimatedSalary,
+        data.CreditScore,
+        data.Geography,
+        data.Gender,
+        data.Age,
+        data.Tenure,
+        data.Balance,
+        data.NumOfProducts,
+        data.HasCrCard,
+        data.IsActiveMember,
+        data.EstimatedSalary,
     ]
     prediction = predict_churn(features)
     logger.info(f"Input features: {features}")
