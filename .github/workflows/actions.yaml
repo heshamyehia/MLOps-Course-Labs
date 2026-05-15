@@ -2,7 +2,7 @@ name: CI/CD - Test, Build, Deploy
 
 on:
   push:
-    branches: - main
+    branches: ["main"]
   workflow_dispatch:
 
 env:
